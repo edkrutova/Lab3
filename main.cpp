@@ -234,11 +234,8 @@ int main(int argc, char *argv[]) //argc - argumnet counter, argv - argument valu
         // вычисляем матрицу ковариации
         for (int i = 0; i < field[0][0].cov_matrixx.size();i++) {
             for (int j =0; j < field[0][0].cov_matrixx[0].size(); j++ ) {
-                cout <<  field[0][0].cov_matrixx[i][j] << "";
             }
-            cout <<  endl;
         }
-        cout << "----------" << endl;
         reverse_matrix(field[n][0].cov_matrixx);
 
     }
