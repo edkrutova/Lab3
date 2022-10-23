@@ -66,6 +66,7 @@ void reverse_matrix(vector<vector<float>> &M) {
             }
         }
 
+
     }
     //На месте исходной матрицы должна получиться единичная а на месте единичной - обратная.
     for (int i = 0; i < M.size(); i++) {
@@ -151,6 +152,63 @@ public:
     }
 };
 
+void step_one(int n, vector<vector<Lab3>>& field, int row, int col, int samples, Loader loader, int classes) {
+    for (int j = 0; j < samples; j++) {
+        field[n][j].coord.resize(row);
+        field[n][j].core.resize(col);
+        field[n][j].cov_matrixx.resize(row * col);
+        field[n][j].coord_difference.resize(row);
+        field[n][j].cov_mul.resize(row);
+        field[n][j].final = 0;
+
+        for (int i = 0; i < row; i++) {
+            field[n][j].coord[i].resize(col);
+            field[n][j].core[i].resize(col);
+            field[n][j].coord_difference[i].resize(col);
+            field[n][j].cov_mul[i].resize(col);
+        }
+        for (int i = 0; i < row * col; i++) {
+            field[n][j].cov_matrixx[i].resize(row * col);
+
+        }
+    }
+
+    // считываем образы, распределяем коэффициенты
+    for (int obr = 0; obr < samples; obr++) {
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
+                field[n][obr].coord[i][j] = loader.examples[n * classes + obr][i][j];
+            }
+        }
+    }
+    cout << "Coeffs " << n + 1 << " object :\n";
+
+    // вычисляем ядра классов и выводим коэффициентов в консоль
+    for (int i = 0; i < row; i++) {
+        for (int j = 0; j < col; j++) {
+            for (int obr = 0; obr < samples; obr++) {
+                field[n][0].core[i][j] += field[n][obr].coord[i][j];
+            }
+            field[n][0].core[i][j] /= samples;
+            cout << field[n][0].core[i][j] << "\t";
+        }
+        cout << endl;
+    }
+    for (int col = 0; col < 50; col++) cout << "-";
+    cout << endl;
+    // вычисляем матрицу ковариации
+    for (int i = 0; i < row ; i++)
+        for (int j = 0; j < row; j++) {
+            for (int obr = 0; obr < samples; obr++) {
+                field[n][0].cov_matrixx[i][j] +=
+                        (field[n][obr].coord[i / row][i % row] - field[n][0].core[i / row][i % row]) *
+                        (field[n][0].coord[j / col][j % col] - field[n][0].core[j / col][j % col]);
+            }
+            field[n][0].cov_matrixx[i][j] /= (row * col - 1);
+        }
+
+}
+
 int main(int argc, char *argv[]) //argc - argumnet counter, argv - argument values
 {
     for (int i = 0; i < argc; i++)
@@ -172,72 +230,18 @@ int main(int argc, char *argv[]) //argc - argumnet counter, argv - argument valu
     vector<vector<Lab3>> field(numb_of_classes, vector<Lab3>(numb_of_samples)); // список всех образов
 
     for (int n = 0; n < numb_of_classes; n++) {
-        for (int j = 0; j < numb_of_samples; j++) {
-            field[n][j].coord.resize(row);
-            field[n][j].core.resize(col);
-            field[n][j].cov_matrixx.resize(row * col);
-            field[n][j].coord_difference.resize(row);
-            field[n][j].cov_mul.resize(row);
-            field[n][j].final = 0;
-
-            for (int i = 0; i < row; i++) {
-                field[n][j].coord[i].resize(col);
-                field[n][j].core[i].resize(col);
-                field[n][j].coord_difference[i].resize(col);
-                field[n][j].cov_mul[i].resize(col);
+        step_one(n, field, row, col, numb_of_samples, loader, numb_of_classes);
+        // вычисляем матрицу ковариации
+        for (int i = 0; i < field[0][0].cov_matrixx.size();i++) {
+            for (int j =0; j < field[0][0].cov_matrixx[0].size(); j++ ) {
+                cout <<  field[0][0].cov_matrixx[i][j] << "";
             }
-            for (int i = 0; i < row * col; i++) {
-                field[n][j].cov_matrixx[i].resize(row * col);
-
-            }
+            cout <<  endl;
         }
+        cout << "----------" << endl;
+        reverse_matrix(field[n][0].cov_matrixx);
+
     }
-
-    // считываем образы, распределяем коэффициенты
-    for (int step = 0; step < numb_of_classes; step++) {
-        for (int obr = 0; obr < numb_of_samples; obr++) {
-            for (int i = 0; i < row; i++) {
-                for (int j = 0; j < col; j++) {
-                    field[step][obr].coord[i][j] = loader.examples[step * numb_of_classes + obr][i][j];
-                }
-            }
-        }
-    }
-
-    // вычисляем ядра классов и выводим коэффициентов в консоль
-    for (int step = 0; step < numb_of_classes; step++) {
-        cout << "Coeffs " << step + 1 << " object :\n";
-        for (int i = 0; i < row; i++) {
-            for (int j = 0; j < col; j++) {
-                for (int obr = 0; obr < numb_of_samples; obr++) {
-                    field[step][0].core[i][j] += field[step][obr].coord[i][j];
-                }
-                field[step][0].core[i][j] /= (row * col);
-                cout << field[step][0].core[i][j] << "\t";
-            }
-            cout << endl;
-        }
-        for (int col = 0; col < 50; col++) cout << "-";
-        cout << endl;
-    }
-
-    // вычисляем матрицу ковариации
-    for (int step = 0; step < numb_of_classes; step++) {
-        for (int i = 0; i < row * col; i++)
-            for (int j = 0; j < row * col; j++) {
-                for (int obr = 0; obr < numb_of_samples; obr++) {
-                    field[step][0].cov_matrixx[i][j] +=
-                            (field[step][obr].coord[i / row][i % row] - field[step][0].core[i / row][i % row]) *
-                            (field[step][0].coord[j / col][j % col] - field[step][0].core[j / col][j % col]);
-                }
-                field[step][0].cov_matrixx[i][j] /= (row * col - 1);
-            }
-
-        // преобразуем матрицу ковариаций
-        reverse_matrix(field[step][0].cov_matrixx);
-    }
-
-
     // вычисляем разницу между образцом и примером
     for (int st = 0; st < numb_of_tasks; st++) {
         for (int i = 0; i < row; i++) {
@@ -247,13 +251,6 @@ int main(int argc, char *argv[]) //argc - argumnet counter, argv - argument valu
             }
         }
 
-        for (int step = 0; step < numb_of_classes; step++) {
-            for (auto &i: field[step][0].cov_mul) {
-                for (float &j: i) {
-                    j = 0;
-                }
-            }
-        }
 
         //вычисляем первую часть расстояния
         for (int i = 0; i < row * col; i++) {
@@ -266,29 +263,24 @@ int main(int argc, char *argv[]) //argc - argumnet counter, argv - argument valu
         }
 
         //вычисляем расстояние Махланобиса-Евклида
-        for (int i = 0; i < row; i++) {
-            for (int j = 0; j < col; j++) {
-                for (int step = 0; step < numb_of_classes; step++) {
-                    field[step][0].final += (field[step][0].cov_mul[i][j] * field[step][0].coord_difference[i][j]);
+        for (int step = 0; step < numb_of_classes; step++) {
+            field[step][0].final=0;
+            for (int i = 0; i < row; i++) {
+                for (int j = 0; j < col; j++) {
+                        field[step][0].final += (field[step][0].cov_mul[i][j] * field[step][0].coord_difference[i][j]);
+                    }
                 }
-            }
         }
-
         vector<pair<float, int>> best;
         for (int step = 0; step < numb_of_classes; step++) {
-            field[step][0].final = sqrt(field[step][0].final);
+            field[step][0].final = sqrt(fabs(field[step][0].final));
             best.emplace_back(field[step][0].final, step);
         }
         sort(best.begin(), best.end());
-        if (fabs(best[0].first - best[1].first) > 0.3)
-            loader.print_tasks(st, loader.classes[best[0].second * 4]);
-        else {
-            cout << "the class is not precisely defined" << endl;
-            loader.print_tasks(st, loader.classes[best[0].second * 4]);
-        }
+        loader.print_tasks(st, loader.classes[best[0].second * 4]);
 
         for (int step = 0; step < numb_of_classes; step++) {
-            cout << "Distance " << loader.classes[step * 4] << " : " << field[step][0].final << endl;
+            cout << "Distance " << loader.classes[step * numb_of_classes] << " : " << field[step][0].final << endl;
         }
         cout << "-------------------------------------------\n";
     }
